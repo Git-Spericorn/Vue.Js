@@ -1,0 +1,59 @@
+//login page
+
+<template>
+  	<div id="app">
+    	<div id="id01">
+      		<form @submit.prevent="handleSubmit">
+        		<div class="container">
+          			<label for="uname">
+            			<b>Username</b>
+          			</label>
+          			<input type="text" placeholder="Enter Username" name="username" v-model="form.username"/>
+          			<label for="psw">
+            			<b>Password</b>
+          			</label>
+          			<input type="password" placeholder="Enter Password" name="password" v-model="form.password"/>
+          			<span class="err-cls" >{{this.error.formError}}</span>
+          			<button type="submit">Login</button>
+        		</div>
+      		</form>
+    	</div>
+  	</div>
+</template>
+
+<script>
+	export default {
+  		name: 'app',
+  		head: {
+    		title: 'Login Form',
+  		},
+  		data() {
+    		return {
+      			form: {
+        			username: '',
+        			password: '',
+      			},
+      			error: {
+        			formError: '',
+      			},
+    		};
+		},
+  		methods: {
+
+    		// handling the form submit action
+    		handleSubmit() {
+      			const { username, password } = this.form;
+      			if (username && password) {
+        			alert('Logged In Successfully!!');
+        			this.form = {
+          				username: '',
+          				password: '',
+        			};
+        			this.error.formError = '';
+      			} else {
+        			this.error.formError = 'Invalid form data!';
+      			}
+    		},
+  		},
+	};
+</script>
