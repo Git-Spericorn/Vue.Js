@@ -44,14 +44,17 @@
     		handleSubmit() {
       			const { username, password } = this.form;
       			if (username && password) {
-        			alert('Logged In Successfully!!');
         			this.form = {
           				username: '',
           				password: '',
         			};
         			this.error.formError = '';
+
+				// Login success
+
       			} else {
         			this.error.formError = 'Invalid form data!';
+				// Login failed	
       			}
     		},
   		},
