@@ -1,0 +1,163 @@
+// SEARCH AND LISTING
+
+<div id="app">
+	<div class="rel">
+		<input v-model="keyword" placeholder="Enter a tag" :disabled="disabled"> 
+		<ul id="tagList" v-if="tagSearchResult.length" v-show="open">
+			<li v-for="tagItem in tagSearchResult" v-bind:id="tagItem.H1TERMID" v-bind:title="tagItem.TAGLINK">
+				<span v-on:click="addNewTag(tagItem, thisProductID, getUserRecord.userid)">{{ tagItem.TAG }}</span>
+			</li>
+		</ul>
+	</div>
+	<p class="red">{{ error }}</p>
+	<p class="green">{{ message }}</p>
+	<div id="selectedTags" v-if="selectedTags.length">
+		<span v-for="(tagItem, index) in selectedTags" v-bind:title="tagItem.TAGLINK">{{ tagItem.TAG }}<span v-on:click="removeTag(tagItem, index, thisProductID, getUserRecord.userid)">x</span></span>
+	</div>	
+</div>
+
+var watchExampleVM = new Vue({
+	el: '#app',
+	data: {
+		keyword: '',
+		error: '',
+		message: '',
+		tagSearchResult: [],
+		selectedTags: [],
+		open: false,
+		disabled: false
+	},
+	watch: {
+		// whenever keyword changes, this function will run
+		keyword: function (newKeyword, oldKeyword) {
+			this.tagSearchResult = []
+			this.open = false
+			if(newKeyword.length) {
+				this.message = 'Stop typing to search...'
+				this.error = '' 
+				this.debouncedGetTags()
+			}
+		}
+	},
+	created: function () {
+		// _.debounce is a function provided by lodash to limit how
+		// often a particularly expensive operation can be run.
+		// In this case, we want to limit how often we access
+		// yesno.wtf/api, waiting until the user has completely
+		// finished typing before making the ajax request. To learn
+		// more about the _.debounce function (and its cousin
+		// _.throttle), visit: https://lodash.com/docs#debounce
+		this.debouncedGetTags = _.debounce(this.getTags, 500)
+	},
+	mounted: function () {
+		var vm = this
+		if (productID) {
+			axios.get('http://server_url&productID='+productID)
+			.then(function (response) {
+				vm.error = ""
+				vm.open = true
+				if( response.data.length ){
+					vm.selectedTags = response.data
+				}
+				if (vm.selectedTags.length >= 6) {
+					vm.disabled = true
+				}
+			})
+			.catch(function (error) {
+				this.message = ''
+				vm.error = 'Error! Could not reach the API. ' + error
+			})
+		}
+		this.debouncedGetTags = _.debounce(this.getTags, 500)
+	},
+	methods: {
+		getTags: function () {
+			if (this.keyword.length < 3) {
+				this.message = ''
+				this.error = 'Keyword has to be at least 3 characters. Please try again'
+				return
+			}
+			this.message = 'Searching...' 
+			var vm = this
+			axios.get('http://server_url&Searchkeyword='+this.keyword)
+			.then(function (response) {
+				vm.error = ""
+				vm.open = true
+				if( response.data.length ){
+					vm.tagSearchResult = response.data
+					vm.error = '' 
+				} else {
+					vm.error = "No tags found, Try another keyword!"
+					vm.message = ''
+				}
+			})
+			.catch(function (error) {
+				vm.error = 'Error! Could not reach the API. ' + error
+				this.message = ''
+			})
+		},
+		addNewTag: function (tag, productID, userID) {
+			var vm = this 
+			vm.open = false
+			var tagExists = vm.selectedTags.filter(function(item) {
+				return item.H1TERMID == tag.H1TERMID;
+			});
+			if(tagExists.length) {
+				vm.error = 'Tag already exists !'
+				vm.message = ''
+			} else {
+				vm.selectedTags.push(tag)
+				if (vm.selectedTags.length >= 6) {
+					vm.disabled = true
+				}
+				vm.message = 'Saving...' 
+				var bodyFormData = new FormData();
+				bodyFormData.set('tag',tag.TAG);
+				bodyFormData.set('productid', productID); // need to pass productid and userid
+				bodyFormData.set('h1TermID',tag.H1TERMID);
+				bodyFormData.set('TAGLINK',tag.TAGLINK);
+				bodyFormData.set('userID', userID);
+				axios({
+					method: 'post',
+					url: 'http://server_url',
+					data: bodyFormData,
+					headers: {'Content-Type': 'multipart/form-data' }
+				})
+				.then(function (response) {
+				//handle success
+					vm.error = '' 
+					vm.keyword = ''
+					vm.message =''
+				})
+				.catch(function (response) {
+				//handle error
+					vm.error = "Error ! Couldn't saving the tag..."
+					vm.message = ''
+				});
+			} 
+		},
+		removeTag: function (tag, index, productID, userID) {
+			var vm = this 
+			var bodyFormData = new FormData();
+			bodyFormData.set('productid', productID);
+			bodyFormData.set('h1TermID',tag.H1TERMID);
+			bodyFormData.set('userID', userID);
+			axios({
+				method: 'post',
+				url: 'http://server_url',
+				data: bodyFormData,
+				headers: {'Content-Type': 'multipart/form-data' }
+			})
+			.then(function (response) {
+			//handle success
+			})
+			.catch(function (response) {
+			//handle error
+			});
+			vm.selectedTags.splice(index, 1)
+			if (vm.selectedTags.length < 6) {
+				vm.disabled = false
+			}
+		}
+	}
+});
